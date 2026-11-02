@@ -1,0 +1,255 @@
+/* ============ Simulated backend (REST-style API over browser storage) ============ */
+const mem={};
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return mem[k]??null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){mem[k]=v}}};
+const db={get(k,d){try{const v=JSON.parse(store.get(k));return v??d}catch(e){return d}},set(k,v){store.set(k,JSON.stringify(v))}};
+const hash=async s=>{try{return[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('wl:'+s)))].map(b=>b.toString(16).padStart(2,'0')).join('')}catch(e){return btoa(s)}};
+const DEST=[
+{id:1,name:'Bali',country:'Indonesia',cat:'Beach',price:1190,days:7,rating:4.8,e:'🌴',g:['#ff9a8b','#ffb703'],desc:'Rice terraces, surf breaks and sunset temples. Seven days split between Ubud’s jungle and Uluwatu’s cliffs.',hl:['Private villa','Temple tour','Cooking class','Airport transfer']},
+{id:2,name:'Santorini',country:'Greece',cat:'Romance',price:1890,days:5,rating:4.9,e:'🏛️',g:['#4facfe','#e0f4ff'],desc:'Whitewashed cliffside towns above a volcanic caldera. Sunset sailing and wine tasting included.',hl:['Caldera-view suite','Catamaran cruise','Wine tasting','Breakfast daily']},
+{id:3,name:'Kyoto',country:'Japan',cat:'Culture',price:2150,days:8,rating:4.9,e:'⛩️',g:['#f6a6c1','#8e6bbf'],desc:'Moss gardens, geisha districts and a thousand torii gates. Includes a tea ceremony and a bullet-train pass.',hl:['Ryokan stay','Tea ceremony','Rail pass','Local guide']},
+{id:4,name:'Swiss Alps',country:'Switzerland',cat:'Adventure',price:2480,days:6,rating:4.7,e:'🏔️',g:['#a1c4fd','#2b5876'],desc:'Scenic trains, alpine lakes and high-altitude hikes around Interlaken and Zermatt.',hl:['Swiss travel pass','Cable cars','Chalet stay','Hiking guide']},
+{id:5,name:'Maldives',country:'Maldives',cat:'Beach',price:3200,days:5,rating:4.9,e:'🏝️',g:['#00c6a7','#1e4d92'],desc:'An overwater bungalow on a private lagoon, with snorkeling among reef sharks and manta rays.',hl:['Overwater villa','Seaplane','Snorkel trip','All meals']},
+{id:6,name:'Machu Picchu',country:'Peru',cat:'Adventure',price:1450,days:7,rating:4.8,e:'🦙',g:['#7ac74f','#2d5016'],desc:'Cusco, the Sacred Valley and the Inca citadel at sunrise, with an optional Inca Trail hike.',hl:['Citadel entry','Train tickets','Expert guide','Altitude support']},
+{id:7,name:'Paris',country:'France',cat:'Romance',price:1320,days:4,rating:4.6,e:'🗼',g:['#ffd1dc','#6a5acd'],desc:'Museums, bakeries and the Seine at dusk. Skip-the-line access to the Louvre and a Montmartre food walk.',hl:['Boutique hotel','Louvre pass','Seine cruise','Food walk']},
+{id:8,name:'Goa',country:'India',cat:'Beach',price:640,days:5,rating:4.5,e:'🏖️',g:['#ffd86f','#fc6262'],desc:'Palm-lined beaches, Portuguese-era old town and shacks serving fresh seafood.',hl:['Beach resort','Spice farm visit','Scooter rental','Breakfast daily']},
+{id:9,name:'Dubai',country:'UAE',cat:'City',price:1560,days:5,rating:4.6,e:'🌆',g:['#f7971e','#2c3e50'],desc:'Record-breaking skyline, desert dune safari and a dhow dinner on the creek.',hl:['5-star stay','Desert safari','Burj Khalifa','Metro pass']},
+{id:10,name:'Reykjavik',country:'Iceland',cat:'Adventure',price:2050,days:6,rating:4.8,e:'🌌',g:['#2af598','#08203e'],desc:'Northern lights hunts, glacier walks and geothermal lagoons along the Golden Circle.',hl:['4x4 transport','Blue Lagoon','Aurora tour','Glacier hike']}];
+const MORE=[[11,'Jaipur','India','Culture',520,4,4.7,'🏰','#f9a8a8','#c2410c','The Pink City’s forts, palaces and bazaars, with a sunrise visit to Amber Fort.','Amber Fort|Heritage haveli|Bazaar walk|Local guide'],[12,'Manali','India','Adventure',480,5,4.6,'⛰️','#bde0fe','#1d4e89','Snow-capped Himalayan views, paragliding in Solang Valley and cosy mountain cafés.','Paragliding|Rohtang drive|Riverside stay|Bonfire dinner'],[13,'Kerala Backwaters','India','Romance',620,5,4.8,'🛶','#a8e063','#056b4b','Drift through palm-lined canals on a private houseboat, then unwind in Munnar’s tea hills.','Houseboat|Munnar tea trail|Ayurvedic spa|Kerala meals'],[14,'Udaipur','India','Romance',580,4,4.8,'🏯','#ffd6a5','#5e60ce','Lake Pichola sunsets, royal palaces and rooftop dinners in the City of Lakes.','City Palace|Boat ride|Lake-view stay|Folk show'],[15,'Varanasi','India','Culture',340,3,4.5,'🪔','#ffb347','#6b2d5c','Dawn boat rides on the Ganges, the evening aarti and Sarnath’s ancient stupas.','Ganga aarti|Sunrise boat|Sarnath visit|Food walk'],[16,'Rishikesh','India','Adventure',380,4,4.6,'🌊','#7dd3fc','#14532d','White-water rafting, bungee jumping and yoga by the Ganges.','River rafting|Yoga sessions|Camp stay|Beatles Ashram'],[17,'Ladakh','India','Adventure',760,7,4.9,'🏞️','#fde68a','#1e3a5f','High passes, Pangong Lake and monasteries on one of the world’s great road trips.','Pangong Lake|Permits|Oxygen support|Monastery tour'],[18,'Andaman Islands','India','Beach',720,6,4.8,'🐠','#67e8f9','#0369a1','Radhanagar Beach, scuba diving at Havelock and glass-bottom boats over coral.','Scuba intro|Ferry transfers|Beach resort|Island hopping'],[19,'Singapore','Singapore','City',1250,5,4.7,'🦁','#ff9a9e','#3b3b98','Gardens by the Bay, hawker centres and Sentosa, all linked by spotless transit.','Gardens by the Bay|Universal Studios|Night Safari|Transit card'],[20,'Bangkok','Thailand','City',780,5,4.5,'🛕','#fbc2eb','#f59e0b','Golden temples, floating markets and street food, with a day trip to Ayutthaya.','Grand Palace|Floating market|Street food tour|River cruise'],[21,'London','UK','City',2350,6,4.6,'🎡','#cfd9df','#3c4a63','Westminster, West End shows and Thames walks, with a day trip to Windsor Castle.','London Eye|West End show|Windsor trip|Oyster card'],[22,'New York','USA','City',2900,6,4.7,'🗽','#fddb92','#1d2b64','Broadway, Central Park and the skyline from Top of the Rock.','Broadway show|Statue cruise|Top of the Rock|Subway pass'],[23,'Rome','Italy','Culture',1650,5,4.8,'🏺','#fbd3a2','#8b2e2e','The Colosseum, the Vatican and Trevi Fountain, with pasta lessons in Trastevere.','Colosseum entry|Vatican tour|Pasta class|Central hotel'],[24,'Istanbul','Turkey','Culture',1180,5,4.7,'🕌','#f6d365','#0f4c75','Hagia Sophia, the Grand Bazaar and a Bosphorus cruise where two continents meet.','Hagia Sophia|Bosphorus cruise|Turkish bath|Bazaar guide'],[25,'Sydney','Australia','City',2600,6,4.6,'🦘','#84fab0','#1565c0','Opera House, Bondi coastal walk and koalas at Taronga Zoo.','Opera House tour|Harbour cruise|Taronga Zoo|Bondi walk']];
+DEST.push(...MORE.map(a=>({id:a[0],name:a[1],country:a[2],cat:a[3],price:a[4],days:a[5],rating:a[6],e:a[7],g:[a[8],a[9]],desc:a[10],hl:a[11].split('|')})));
+DEST.forEach(d=>d.price=Math.round(d.price*84/500)*500);
+const HT=[['Backpackers Stay',1800,3.9,'Budget'],['Grand Residency',4500,4.3,'Comfort'],['Royal Palace Resort',11000,4.8,'Luxury']];
+const hotelsFor=d=>HT.map((h,i)=>({name:d.name+' '+h[0],price:Math.round(h[1]*(0.8+d.id%5*.12)/100)*100,rating:h[2],tier:h[3],km:((d.id*7+i*13)%40+5)/10}));
+/* Map data: destination centre points. Hotel pins are placed at each hotel's listed distance from the centre (illustrative positions). */
+const COORD={1:[-8.5069,115.2625],2:[36.4167,25.4318],3:[35.0116,135.7681],4:[46.6863,7.8632],5:[4.1755,73.5093],6:[-13.532,-71.9675],7:[48.8566,2.3522],8:[15.4909,73.8278],9:[25.2048,55.2708],10:[64.1466,-21.9426],11:[26.9124,75.7873],12:[32.2396,77.1887],13:[9.4981,76.3388],14:[24.5854,73.7125],15:[25.3176,82.9739],16:[30.0869,78.2676],17:[34.1526,77.577],18:[11.6234,92.7265],19:[1.3521,103.8198],20:[13.7563,100.5018],21:[51.5074,-0.1278],22:[40.7128,-74.006],23:[41.9028,12.4964],24:[41.0082,28.9784],25:[-33.8688,151.2093]};
+const hotelPos=(d,i)=>{const c=COORD[d.id],h=hotelsFor(d)[i],b=((d.id*47+i*120)%360)*Math.PI/180;return[c[0]+h.km/111*Math.cos(b),c[1]+h.km/(111*Math.cos(c[0]*Math.PI/180))*Math.sin(b)]};
+const CT=[['Hatchback with driver · 4 seats',1800],['SUV with driver · 7 seats',3200],['Luxury sedan with driver · 4 seats',6000]];
+const carsFor=d=>CT.map(c=>({name:c[0],price:Math.round(c[1]*(0.85+d.id%4*.1)/100)*100}));
+const FD={Beach:[['Fresh seafood platter','🦐',650],['Coconut fish curry','🍛',480],['Tropical fruit bowl','🍍',220],['Coconut water & smoothie','🥥',160]],Romance:[['Candlelight dinner for two','🕯️',2400],['Wine & cheese board','🍷',1400],['Chef’s pasta','🍝',750],['Chocolate dessert','🍰',320]],Culture:[['Regional thali','🍽️',520],['Street food tasting','🥟',360],['Traditional tea set','🍵',240],['Sweets box','🍬',300]],Adventure:[['Trekker’s breakfast','🍳',380],['Hot soup & bread','🍲',260],['Energy snack pack','🥜',220],['Grilled meat platter','🍖',780]],City:[['Gourmet burger','🍔',520],['Wood-fired pizza','🍕',640],['Sushi platter','🍣',900],['Iced coffee & cake','☕',280]]};
+const foodFor=d=>(FD[d.cat]||FD.City).map(f=>({name:f[0],e:f[1],price:f[2]}));
+function extras(d,b,n){let cost=0;const items=[],H=hotelsFor(d),C=carsFor(d),F=foodFor(d);
+ if(b.hotel!=null&&b.hotel!==''){const h=H[+b.hotel];if(!h)throw Error('Hotel not found.');const r=Math.ceil(n/2);cost+=h.price*d.days*r;items.push(h.name+' ('+r+' room'+(r>1?'s':'')+', '+d.days+' nights)')}
+ if(b.car!=null&&b.car!==''){const c=C[+b.car];if(!c)throw Error('Car not found.');cost+=c.price*d.days;items.push(c.name+' ('+d.days+' days)')}
+ Object.entries(b.food||{}).forEach(([i,q])=>{q=+q;if(!q)return;const f=F[+i];if(!f||q<0||q>20)throw Error('Invalid food order.');cost+=f.price*q;items.push(q+'× '+f.name)});
+ return{cost,items}}
+const luhn=s=>{let t=0,a=false;for(let i=s.length-1;i>=0;i--){let n=+s[i];if(a){n*=2;if(n>9)n-=9}t+=n;a=!a}return t%10===0};
+const payCheck=p=>{p=p||{};
+ if(p.method==='upi'){if(!/^[a-z0-9._-]{2,}@[a-z]{2,}$/i.test(p.upi||''))throw Error('Enter a valid UPI ID, like name@okbank.');const u=p.upi.split('@');return{method:'UPI',ref:u[0].slice(0,2)+'•••@'+u[1]}}
+ if(p.method==='card'){const n=(p.num||'').replace(/ /g,'');if(!/^[0-9]{13,19}$/.test(n)||!luhn(n))throw Error('Card number looks invalid. Check the digits.');const m=(p.exp||'').split('/');if(m.length!==2||+m[0]<1||+m[0]>12||new Date(2000+(+m[1]),+m[0],1)<new Date())throw Error('Enter a valid expiry as MM/YY.');if(!/^[0-9]{3,4}$/.test(p.cvv||''))throw Error('Enter the 3 or 4 digit CVV.');return{method:'Card',ref:'•••• '+n.slice(-4)}}
+ if(p.method==='netbanking'){if(!p.bank)throw Error('Choose your bank.');return{method:'Net banking',ref:p.bank}}
+ throw Error('Choose a payment method.')};
+const API=async(m,p,b={})=>{
+ await new Promise(r=>setTimeout(r,220));
+ const users=db.get('users',[]),bks=db.get('bookings',[]),tok=db.get('token',null);
+ const me=tok&&users.find(u=>u.id===tok);
+ const need=()=>{if(!me)throw Error('Please sign in first.');return me};
+ if(m==='GET'&&p==='/destinations')return DEST;
+ if(m==='GET'&&p==='/me')return me?{id:me.id,name:me.name,email:me.email}:null;
+ if(m==='POST'&&p==='/auth/register'){
+  if(!b.name||!/^\S+@\S+\.\S+$/.test(b.email))throw Error('Enter your name and a valid email.');
+  if((b.password||'').length<6)throw Error('Password needs at least 6 characters.');
+  if(users.some(u=>u.email===b.email.toLowerCase()))throw Error('That email already has an account. Try signing in.');
+  const u={id:'u'+Date.now(),name:b.name.trim(),email:b.email.toLowerCase(),pw:await hash(b.password)};
+  users.push(u);db.set('users',users);db.set('token',u.id);return{id:u.id,name:u.name,email:u.email}}
+ if(m==='POST'&&p==='/auth/login'){
+  const u=users.find(u=>u.email===(b.email||'').toLowerCase());
+  if(!u||u.pw!==await hash(b.password||''))throw Error('Email or password is incorrect.');
+  db.set('token',u.id);return{id:u.id,name:u.name,email:u.email}}
+ if(m==='POST'&&p==='/auth/logout'){db.set('token',null);return true}
+ if(m==='GET'&&p==='/favs')return me?db.get('favs:'+me.id,[]):db.get('favs:guest',[]);
+ if(m==='POST'&&p==='/favs'){const k='favs:'+(me?me.id:'guest');let f=db.get(k,[]);f=f.includes(b.id)?f.filter(i=>i!==b.id):[...f,b.id];db.set(k,f);return f}
+ if(m==='GET'&&p==='/bookings'){need();return bks.filter(x=>x.uid===me.id).sort((a,c)=>c.created-a.created)}
+ if(m==='POST'&&p==='/bookings'){
+  need();const d=DEST.find(x=>x.id===b.destId);if(!d)throw Error('Destination not found.');
+  const n=+b.travelers;if(!(n>=1&&n<=10))throw Error('Choose 1 to 10 travelers.');
+  if(!b.date||new Date(b.date)<new Date(new Date().toDateString()))throw Error('Pick a start date that is today or later.');
+  if(!b.phone||b.phone.replace(/\D/g,'').length<7)throw Error('Enter a valid phone number.');
+  const x=extras(d,b,n);const sub=d.price*n+x.cost,tax=Math.round(sub*.12);
+  const pay={...payCheck(b.pay),txn:'TXN'+Date.now().toString().slice(-9),paidAt:Date.now(),status:'Paid'};const bk={id:'WL'+Math.random().toString(36).slice(2,8).toUpperCase(),uid:me.id,destId:d.id,date:b.date,travelers:n,phone:b.phone,total:sub+tax,extras:x.items,status:'Confirmed',pay,created:Date.now()};
+  bks.push(bk);db.set('bookings',bks);return bk}
+ if(m==='DELETE'&&p.startsWith('/bookings/')){need();const bk=bks.find(x=>x.id===p.split('/')[2]&&x.uid===me.id);if(!bk)throw Error('Booking not found.');bk.status='Cancelled';if(bk.pay)bk.pay.status='Refunded';db.set('bookings',bks);return bk}
+ throw Error('Unknown route '+m+' '+p)};
+
+/* ============ Frontend ============ */
+const $=s=>document.querySelector(s);
+const money=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+const fmtDate=(d,add=0)=>{const x=new Date(d+'T00:00');x.setDate(x.getDate()+add);return x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})};
+const state={dest:[],cat:'All',user:null,favs:[],bookings:[]};
+const grad=d=>`linear-gradient(135deg,${d.g[0]},${d.g[1]})`;
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2800)}
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+$('#sd').min=today();
+
+async function init(){
+ state.dest=await API('GET','/destinations');state.user=await API('GET','/me');state.favs=await API('GET','/favs');
+ const cats=['All',...new Set(state.dest.map(d=>d.cat))];
+ $('#chips').innerHTML=cats.map(c=>`<button class="chip" aria-pressed="${c==='All'}" data-c="${c}">${c}</button>`).join('');
+ renderUser();render()}
+function renderUser(){const b=$('#authBtn');b.textContent=state.user?'Sign out ('+state.user.name.split(' ')[0]+')':'Sign in'}
+function render(){
+ const q=$('#q').value.trim().toLowerCase(),bud=+$('#bud').value,s=$('#sort').value;
+ let l=state.dest.filter(d=>(state.cat==='All'||d.cat===state.cat)&&(!q||(d.name+d.country+d.cat).toLowerCase().includes(q))&&(!bud||d.price<=bud));
+ l.sort((a,b)=>s==='lo'?a.price-b.price:s==='hi'?b.price-a.price:b.rating-a.rating);
+ $('#grid').innerHTML=l.length?l.map(d=>`<article class="card"><div class="pic" style="background:${grad(d)}"><span class="tag">${d.cat} · ${d.days} days</span><button class="fav" data-f="${d.id}" aria-label="Save ${d.name}">${state.favs.includes(d.id)?'❤️':'🤍'}</button>${d.e}</div>
+ <div class="cb"><div class="row"><h3>${d.name}</h3><span>★ ${d.rating}</span></div><span class="mute">${d.country}</span>
+ <div class="row" style="margin-top:8px"><div class="price">${money(d.price)} <small>/ person</small></div><button class="btn" data-o="${d.id}">View trip</button></div></div></article>`).join(''):'<div class="empty"><h3>No trips match yet</h3><p>Try a higher budget or clear the destination search.</p></div>'}
+
+$('#chips').onclick=e=>{const c=e.target.dataset.c;if(!c)return;state.cat=c;document.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x.dataset.c===c));render()};
+$('#sort').onchange=render;
+$('#sf').onsubmit=e=>{e.preventDefault();render();$('#explore').scrollIntoView()};
+$('#q').oninput=render;
+$('#grid').onclick=async e=>{
+ const f=e.target.closest('[data-f]');if(f){state.favs=await API('POST','/favs',{id:+f.dataset.f});render();toast(state.favs.includes(+f.dataset.f)?'Saved to favorites':'Removed from favorites');return}
+ const o=e.target.closest('[data-o]');if(o)openTrip(+o.dataset.o)};
+$('#theme').onclick=()=>{const r=document.documentElement,dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dark?'light':'dark'};
+
+function closeBtn(d){return `<button class="x" aria-label="Close" onclick="document.getElementById('${d}').close()">✕</button>`}
+function addons(d){const H=hotelsFor(d),C=carsFor(d),F=foodFor(d);
+ const radio=(nm,v,t,s,p,chk)=>`<label class="opt"><input type="radio" name="${nm}" value="${v}"${chk?' checked':''}><span><b>${t}</b><small class="mute">${s}</small></span>${p?`<em>${money(p)}<small>/${nm==='car'?'day':'night'}</small></em>`:''}</label>`;
+ return `<div id="ao"><h3 class="ah">Hotels near ${d.name}</h3><div class="opts">${radio('hotel','','Package stay only','Already included in your trip',0,1)}${H.map((h,i)=>radio('hotel',i,h.name,h.tier+' · ★ '+h.rating+' · '+h.km.toFixed(1)+' km from centre',h.price)).join('')}</div>
+ <h3 class="ah">Rent a car</h3><div class="opts">${radio('car','','No car','Use local transport',0,1)}${C.map((c,i)=>radio('car',i,c.name,'Airport pickup · fuel included',c.price)).join('')}</div>
+ <h3 class="ah">Order food to your stay</h3><div class="opts">${F.map((f,i)=>`<div class="opt"><span class="fe">${f.e}</span><span><b>${f.name}</b><small class="mute">${money(f.price)}</small></span><div class="qty"><button type="button" data-q="${i}" data-d="-1" aria-label="Fewer ${f.name}">−</button><output id="q${i}">0</output><button type="button" data-q="${i}" data-d="1" aria-label="More ${f.name}">+</button></div></div>`).join('')}</div></div>`}
+function openTrip(id){
+ const d=state.dest.find(x=>x.id===id),dlg=$('#dlg');
+ dlg.innerHTML=`<div class="dh" style="background:${grad(d)}">${closeBtn('dlg')}${d.e}</div>
+ <div class="db"><div><h2>${d.name}, ${d.country}</h2><p class="mute">★ ${d.rating} · ${d.days} days · ${d.cat}</p><p>${d.desc}</p><ul class="hl">${d.hl.map(h=>`<li>✓ ${h}</li>`).join('')}</ul><div class="mapbox"><div id="tmap" role="region" aria-label="Map of ${d.name} with hotel locations and road route"></div><div class="mapinfo" id="minfo"></div></div>${addons(d)}</div>
+ <form id="bf" style="display:grid;gap:12px" novalidate>
+ <label>Start date<input type="date" name="date" min="${today()}" value="${$('#sd').value}" required></label>
+ <label>Travelers<input type="number" name="travelers" min="1" max="10" value="2" required></label>
+ <label>Phone<input type="tel" name="phone" placeholder="+91 98765 43210" required></label>
+ <fieldset class="pay"><legend>Payment method</legend><div class="chips"><button type="button" class="chip" data-m="upi" aria-pressed="true">UPI</button><button type="button" class="chip" data-m="card" aria-pressed="false">Card</button><button type="button" class="chip" data-m="netbanking" aria-pressed="false">Net banking</button></div><div data-p="upi"><input name="upi" placeholder="yourname@okbank" autocomplete="off" aria-label="UPI ID"></div><div data-p="card" hidden style="display:none;gap:8px"><input name="num" inputmode="numeric" placeholder="Card number" autocomplete="cc-number" aria-label="Card number"><div class="two"><input name="exp" placeholder="MM/YY" autocomplete="cc-exp" aria-label="Expiry"><input name="cvv" type="password" inputmode="numeric" placeholder="CVV" maxlength="4" autocomplete="cc-csc" aria-label="CVV"></div></div><div data-p="netbanking" hidden style="display:none"><select name="bank" aria-label="Bank"><option value="">Select your bank</option><option>HDFC Bank</option><option>State Bank of India</option><option>ICICI Bank</option><option>Axis Bank</option><option>Kotak Mahindra Bank</option></select></div><small class="mute">Demo only: no real money moves. Test card: 4242 4242 4242 4242, any future expiry, any CVV.</small></fieldset><div class="sum" id="sum"></div><div class="err" id="be"></div>
+ <button class="btn big sun" type="submit">${state.user?'Pay &amp; confirm':'Sign in to book'}</button></form></div>`;
+ const food={},sel=()=>({hotel:(dlg.querySelector('[name=hotel]:checked')||{}).value,car:(dlg.querySelector('[name=car]:checked')||{}).value,food}),f=$('#bf'),upd=()=>{const n=Math.max(1,Math.min(10,+f.travelers.value||1)),x=extras(d,sel(),n),sub=d.price*n+x.cost,tax=Math.round(sub*.12);
+  $('#sum').innerHTML=`<div class="row"><span>${money(d.price)} × ${n} traveler${n>1?'s':''}</span><span>${money(d.price*n)}</span></div>${x.items.map(t=>`<div class="row mute"><span>+ ${t}</span></div>`).join('')}${x.cost?`<div class="row"><span>Add-ons</span><span>${money(x.cost)}</span></div>`:''}<div class="row mute"><span>Taxes &amp; fees (12%)</span><span>${money(tax)}</span></div>${f.date.value?`<div class="row mute"><span>Trip dates</span><span>${fmtDate(f.date.value)} – ${fmtDate(f.date.value,d.days)}</span></div>`:''}<div class="row t"><span>Total</span><span>${money(sub+tax)}</span></div>`};
+ f.oninput=upd;$('#ao').oninput=()=>{upd();showRoute(d,sel().hotel)};$('#ao').onclick=e=>{const b=e.target.closest('[data-q]');if(!b)return;const i=b.dataset.q,v=Math.max(0,Math.min(20,(food[i]||0)+ +b.dataset.d));food[i]=v;$('#q'+i).textContent=v;upd()};upd();let method='upi';f.querySelector('.pay .chips').onclick=e=>{const m=e.target.dataset.m;if(!m)return;method=m;f.querySelectorAll('.pay .chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.m===m));f.querySelectorAll('[data-p]').forEach(p=>{p.hidden=p.dataset.p!==m;p.style.display=p.hidden?'none':(p.dataset.p==='card'?'grid':'block')})};f.num.oninput=()=>{f.num.value=f.num.value.replace(/[^0-9]/g,'').slice(0,19).replace(/(.{4})/g,'$1 ').trim()};
+ f.onsubmit=async e=>{e.preventDefault();if(!state.user){dlg.close();openAuth('login');return}
+  const btn=f.querySelector('button');btn.disabled=true;btn.textContent='Processing payment…';
+  try{const b=await API('POST','/bookings',{destId:d.id,date:f.date.value,travelers:f.travelers.value,phone:f.phone.value,...sel(),pay:{method,upi:f.upi.value,num:f.num.value,exp:f.exp.value,cvv:f.cvv.value,bank:f.bank.value}});
+   dlg.close();toast('Booked! Confirmation '+b.id);openTrips()}
+  catch(er){$('#be').textContent=er.message;btn.disabled=false;btn.textContent='Pay & confirm'}};
+ dlg.showModal();initMap(d,dlg)}
+
+/* ============ Map + road route ============ */
+let LM=null,LL=null,routeCache={};
+const pin=(cls,t)=>L.divIcon({className:'',html:`<div class="pin ${cls}"><span>${t}</span></div>`,iconSize:[30,30],iconAnchor:[15,30],popupAnchor:[0,-28]});
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function initMap(d,dlg){
+ if(LM){LM.remove();LM=null}
+ const el=$('#tmap');
+ if(typeof L==='undefined'){el.innerHTML='<p class="mute" style="padding:20px">The map could not load. Check your internet connection.</p>';return}
+ const c=COORD[d.id];
+ LM=L.map(el,{scrollWheelZoom:false}).setView(c,12);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(LM);
+ LL=L.layerGroup().addTo(LM);
+ dlg.addEventListener('close',()=>{if(LM){LM.remove();LM=null}},{once:true});
+ setTimeout(()=>{if(LM){LM.invalidateSize();showRoute(d,(dlg.querySelector('[name=hotel]:checked')||{}).value)}},60)}
+const fmtDur=s=>{const m=Math.round(s/60);return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'};
+const stepText=s=>{const m=s.maneuver,t=m.type,mod=m.modifier?m.modifier.replace('slight ','bear ').replace('sharp ','sharp '):'',n=s.name?' onto '+s.name:'';
+ if(t==='depart')return 'Head out'+(s.name?' on '+s.name:'');if(t==='arrive')return 'Arrive at the destination';if(t==='roundabout'||t==='rotary')return 'Take the roundabout'+n;
+ if(t==='merge')return 'Merge'+n;if(t==='fork')return 'Keep '+mod+' at the fork'+n;if(t==='continue'||t==='new name')return 'Continue'+n;return 'Turn '+mod+n};
+async function showRoute(d,hi){
+ if(!LM)return;const map=LM,grp=LL;grp.clearLayers();
+ const c=COORD[d.id],H=hotelsFor(d),info=$('#minfo');
+ const dm=L.marker(c,{icon:pin('dest','★')}).addTo(grp).bindPopup('<b>'+esc(d.name)+' centre</b><br>Destination');
+ const sel=hi===''||hi==null?null:+hi,pts=[c];
+ H.forEach((h,i)=>{const p=hotelPos(d,i);if(sel!==i)pts.push(p);
+  const mk=L.marker(p,{icon:pin(sel===i?'sel':'hotel','🏨'),title:h.name}).addTo(grp).bindPopup('<b>'+esc(h.name)+'</b><br>'+h.tier+' · ★ '+h.rating+'<br>'+money(h.price)+' / night<br><small>Click to route from here</small>');
+  mk.on('click',()=>{const r=document.querySelector('#dlg [name=hotel][value="'+i+'"]');if(r){r.checked=true;r.dispatchEvent(new Event('input',{bubbles:true}))}})});
+ if(sel==null){info.innerHTML='<span class="mute">Tap a hotel pin or choose a hotel below to see the road route to '+esc(d.name)+' centre. Hotel pins show approximate positions.</span>';LM.fitBounds(L.latLngBounds(pts.concat(H.map((h,i)=>hotelPos(d,i)))).pad(.25));return}
+ const h=H[sel],a=hotelPos(d,sel);
+ info.innerHTML='<span class="mute">Finding the best road route…</span>';
+ const key=d.id+':'+sel;let r=routeCache[key];
+ if(!r){try{const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),9000);
+   const res=await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${c[1]},${c[0]}?overview=full&geometries=geojson&steps=true`,{signal:ctl.signal});clearTimeout(t);
+   const j=await res.json();if(j.code!=='Ok'||!j.routes[0])throw Error('no route');r=j.routes[0];routeCache[key]=r}catch(e){r=null}}
+ if(LM!==map)return;
+ if(r){const ll=r.geometry.coordinates.map(p=>[p[1],p[0]]);
+  L.polyline(ll,{color:'#fff',weight:9,opacity:.9}).addTo(grp);const pl=L.polyline(ll,{color:'#0f8b8d',weight:5}).addTo(grp);
+  LM.fitBounds(pl.getBounds().pad(.2));
+  const steps=r.legs[0].steps.filter(s=>s.distance>0||s.maneuver.type==='arrive');
+  info.innerHTML=`<b>${esc(h.name)} → ${esc(d.name)} centre</b><div class="stats"><span>🚗 ${(r.distance/1000).toFixed(1)} km</span><span>⏱ ${fmtDur(r.duration)}</span></div><details><summary>Turn-by-turn directions (${steps.length})</summary><ol>${steps.map(s=>`<li>${esc(stepText(s))}${s.distance>0?' · '+(s.distance>=1000?(s.distance/1000).toFixed(1)+' km':Math.round(s.distance)+' m'):''}</li>`).join('')}</ol></details>`}
+ else{const km=map.distance(a,c)/1000;L.polyline([a,c],{color:'#0f8b8d',weight:4,dashArray:'8 8'}).addTo(grp);LM.fitBounds(L.latLngBounds([a,c]).pad(.4));
+  info.innerHTML=`<b>${esc(h.name)} → ${esc(d.name)} centre</b><div class="stats"><span>📏 ~${km.toFixed(1)} km straight line</span></div><span class="mute">A drivable road route isn't available here right now (offline, or no road link), so the direct line is shown.</span>`}}
+
+function openAuth(mode){
+ const a=$('#auth'),reg=mode==='register';
+ a.innerHTML=`<form class="auth" id="af" novalidate><div class="row"><h2>${reg?'Create account':'Welcome back'}</h2><button type="button" class="btn ghost" onclick="document.getElementById('auth').close()" aria-label="Close">✕</button></div>
+ ${reg?'<label>Full name<input name="name" autocomplete="name" required></label>':''}
+ <label>Email<input name="email" type="email" autocomplete="email" required></label>
+ <label>Password<input name="password" type="password" autocomplete="${reg?'new-password':'current-password'}" required></label>
+ <div class="err" id="ae"></div><button class="btn big" type="submit">${reg?'Create account':'Sign in'}</button>
+ <button type="button" class="btn ghost" id="sw">${reg?'I already have an account':'New here? Create an account'}</button></form>`;
+ $('#sw').onclick=()=>openAuth(reg?'login':'register');
+ $('#af').onsubmit=async e=>{e.preventDefault();const f=e.target,v=Object.fromEntries(new FormData(f));
+  try{state.user=await API('POST',reg?'/auth/register':'/auth/login',v);state.favs=await API('GET','/favs');a.close();renderUser();render();toast('Signed in as '+state.user.name)}
+  catch(er){$('#ae').textContent=er.message}};
+ if(!a.open)a.showModal()}
+$('#authBtn').onclick=async()=>{if(state.user){await API('POST','/auth/logout');state.user=null;state.favs=await API('GET','/favs');renderUser();render();toast('Signed out')}else openAuth('login')};
+
+async function openTrips(){
+ if(!state.user){toast('Sign in to see your trips');openAuth('login');return}
+ const dlg=$('#tripsDlg');dlg.innerHTML='<div style="padding:24px">Loading your trips…</div>';if(!dlg.open)dlg.showModal();
+ const l=await API('GET','/bookings');
+ dlg.innerHTML=`<div style="padding:24px"><div class="row"><h2>My trips</h2><button class="btn ghost" onclick="document.getElementById('tripsDlg').close()" aria-label="Close">✕</button></div>
+ ${l.length?l.map(b=>{const d=state.dest.find(x=>x.id===b.destId);return `<div class="trip"><div class="e" style="background:${grad(d)}">${d.e}</div>
+ <div><strong>${d.name}, ${d.country}</strong><div class="mute">${fmtDate(b.date)} – ${fmtDate(b.date,d.days)} · ${b.travelers} traveler${b.travelers>1?'s':''}</div><div class="mute">Ref ${b.id} · ${money(b.total)}${b.pay?' · '+b.pay.method:''}</div>${(b.extras||[]).map(t=>`<div class="mute">+ ${t}</div>`).join('')}</div>
+ <div style="display:grid;gap:6px;justify-items:end"><span class="st ${b.status==='Cancelled'?'c':''}">${b.status}</span>${b.status==='Confirmed'?`<button class="btn ghost" data-x="${b.id}">Cancel</button>`:''}</div></div>`}).join(''):'<p class="mute" style="margin-top:16px">No trips yet. Pick a destination and book your first escape.</p>'}</div>`;
+ dlg.onclick=async e=>{const x=e.target.dataset.x;if(!x)return;if(!confirm('Cancel this booking?'))return;try{await API('DELETE','/bookings/'+x);toast('Booking cancelled');openTrips()}catch(er){toast(er.message)}}}
+async function openDash(){
+ if(!state.user){toast('Sign in to see your payments');openAuth('login');return}
+ const dlg=$('#tripsDlg');dlg.onclick=null;dlg.innerHTML='<div style="padding:24px">Loading payments…</div>';if(!dlg.open)dlg.showModal();
+ const l=(await API('GET','/bookings')).filter(b=>b.pay),paid=l.filter(b=>b.pay.status==='Paid'),ref=l.filter(b=>b.pay.status==='Refunded');
+ const sum=a=>a.reduce((s,b)=>s+b.total,0),mon={};
+ [...paid].sort((a,c)=>a.pay.paidAt-c.pay.paidAt).forEach(b=>{const k=new Date(b.pay.paidAt).toLocaleDateString('en-IN',{month:'short',year:'2-digit'});mon[k]=(mon[k]||0)+b.total});
+ const ents=Object.entries(mon).slice(-6),mx=Math.max(1,...ents.map(e=>e[1])),by={};paid.forEach(b=>by[b.pay.method]=(by[b.pay.method]||0)+b.total);
+ const kp=(t,v)=>`<div class="kpi"><span class="mute">${t}</span><b>${v}</b></div>`;
+ dlg.innerHTML=`<div style="padding:24px"><div class="row"><h2>Payments</h2><button class="btn ghost" onclick="document.getElementById('tripsDlg').close()" aria-label="Close">✕</button></div>
+ <div class="kpis">${kp('Total paid',money(sum(paid)))}${kp('Paid trips',paid.length)}${kp('Refunded',money(sum(ref)))}${kp('Average per trip',money(paid.length?sum(paid)/paid.length:0))}</div>
+ ${l.length?`<h3 style="font-size:1.1rem">Spend by month</h3><div class="bars">${ents.map(e=>`<div class="bar1" title="${money(e[1])}"><i style="height:${Math.max(4,e[1]/mx*100)}%"></i></div>`).join('')}</div><div class="bars" style="height:auto;border:0;padding:0;margin-bottom:14px">${ents.map(e=>`<div class="bar1"><span>${e[0]}</span></div>`).join('')}</div>
+ <p class="mute">${Object.entries(by).map(([k,v])=>k+' '+money(v)).join(' · ')||'No successful payments yet'}</p>
+ <h3 style="font-size:1.1rem;margin-top:16px">Payment history</h3><div class="tw"><table><thead><tr><th>Date</th><th>Transaction</th><th>Trip</th><th>Paid with</th><th>Amount</th><th>Status</th></tr></thead><tbody>${l.sort((a,c)=>c.pay.paidAt-a.pay.paidAt).map(b=>{const d=state.dest.find(x=>x.id===b.destId);return `<tr><td>${new Date(b.pay.paidAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</td><td>${b.pay.txn}</td><td>${d.name}</td><td>${b.pay.method} ${b.pay.ref}</td><td><strong>${money(b.total)}</strong></td><td><span class="st ${b.pay.status==='Refunded'?'r':''}">${b.pay.status}</span></td></tr>`}).join('')}</tbody></table></div>`:'<p class="mute">No payments yet. Book a trip and it will show up here with its transaction ID.</p>'}</div>`}
+$('#dash').onclick=openDash;
+$('#trips').onclick=openTrips;
+document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.close()}));
+
+/* ============ Chat assistant (runs in the browser, answers from the trip catalogue) ============ */
+const bot=(()=>{
+ const msgs=$('#msgs'),chat=$('#chat'),fab=$('#fab'),inp=$('#ci');let started=false,last=null;
+ const CATS={beach:'Beach',romance:'Romance',romantic:'Romance',honeymoon:'Romance',culture:'Culture',heritage:'Culture',history:'Culture',adventure:'Adventure',trek:'Adventure',trekking:'Adventure',hiking:'Adventure',city:'City',shopping:'City'};
+ const add=(h,who)=>{const m=document.createElement('div');m.className='m '+who;m.innerHTML=h;msgs.appendChild(m);msgs.scrollTop=msgs.scrollHeight;return m};
+ const tripBtn=d=>`<button type="button" class="cbtn" data-o="${d.id}"><span>${d.e} <b>${esc(d.name)}</b> <small class="mute">${d.days} days · ★ ${d.rating}</small></span><span>${money(d.price)}</span></button>`;
+ const list=(arr,intro)=>arr.length?intro+arr.slice(0,4).map(tripBtn).join(''):'I could not find a trip that fits that. Try a higher budget or a different style, like beach, culture or adventure.';
+ function budget(t){let m=t.match(/(\d+(?:\.\d+)?)\s*(lakh|lac|l\b)/);if(m)return +m[1]*1e5;m=t.match(/(\d+(?:\.\d+)?)\s*k\b/);if(m)return +m[1]*1e3;m=t.match(/(?:under|below|within|less than|upto|up to|budget|max|₹|rs\.?|inr)\s*(?:of\s*)?₹?\s*([\d,]{4,})/);if(m)return +m[1].replace(/,/g,'');m=t.match(/\b(\d{5,7})\b/);return m?+m[1]:0}
+ function find(t){return state.dest.find(d=>t.includes(d.name.toLowerCase()))||state.dest.find(d=>t.includes(d.name.toLowerCase().split(' ')[0])&&d.name.split(' ')[0].length>3)}
+ function reply(raw){
+  const t=raw.toLowerCase(),d=find(t),bud=budget(t),cat=Object.keys(CATS).find(k=>t.includes(k)),dm=t.match(/(\d+)\s*(?:days?|nights?)/),days=dm?+dm[1]:0;
+  if(/^(hi|hello|hey|namaste|good (morning|evening|afternoon))\b/.test(t))return 'Hi! I can suggest trips by budget or style, explain prices, hotels, cars and food add-ons, or help with payments and cancellations. What are you planning?';
+  if(/thank/.test(t))return 'Happy to help! Ask me anything else about your trip.';
+  if(/\b(map|route|road|direction|distance|how far)\b/.test(t))return 'Open any trip and you will see a map with three hotel pins. Pick a hotel, or tap its pin, and I draw the driving route from that hotel to the destination centre with distance, time and turn-by-turn directions. Hotel pins are approximate positions.'+(d?tripBtn(d):'');
+  if(/(cancel|refund)/.test(t))return 'Go to <b>My trips</b> and press Cancel on a confirmed booking. The payment is then marked as refunded in the Payments page. In this demo no real money moves.';
+  if(/\b(pay|payments?|paying|upi|card|net ?banking|transactions?|invoice)\b/.test(t))return 'You can pay by UPI, card or net banking at checkout. Taxes and fees are 12% and the total is shown before you pay. For a test card use 4242 4242 4242 4242 with any future expiry and CVV. The <b>Payments</b> page lists every transaction.';
+  if(/(my trips?|my booking|booked|booking status)/.test(t)){if(!state.user)return 'Please sign in first, then open <b>My trips</b> at the top to see your bookings.';return API('GET','/bookings').then(l=>{const a=l.filter(b=>b.status==='Confirmed');return a.length?'You have '+a.length+' confirmed trip'+(a.length>1?'s':'')+': '+a.map(b=>{const x=state.dest.find(y=>y.id===b.destId);return esc(x.name)+' on '+fmtDate(b.date)}).join(', ')+'. Open <b>My trips</b> for details.':'You have no confirmed trips yet. Want me to suggest something?'})}
+  if(/(how (do|to) (i )?book|how to book|booking process|book a trip)/.test(t))return 'Pick a trip, press <b>View trip</b>, choose your date, travelers, hotel and extras, enter a phone number and a payment method, then press <b>Pay &amp; confirm</b>. You need to be signed in.';
+  if(/(sign ?in|log ?in|account|register|sign ?up|password)/.test(t))return 'Use the Sign in button at the top. New here? Choose "Create an account" inside the sign-in box.';
+  if(/\b(tax|taxes|fees?|gst)\b/.test(t))return 'Taxes and fees are 12% of the trip price plus any add-ons. The full breakdown is shown in the summary box before you pay.';
+  if(/(hotel|stay|room|resort)/.test(t)){const x=d||last;if(x){const H=hotelsFor(x);return `Hotels near ${esc(x.name)}: `+H.map(h=>`<br>• ${esc(h.name)} (${h.tier}, ★ ${h.rating}) ${money(h.price)}/night`).join('')+'<br>One room is booked per 2 travelers. Your package already includes a stay if you pick no hotel.'+tripBtn(x)}return 'Every trip page lists three hotels (budget, comfort, luxury) with nightly prices and distance from the centre, plus map pins. Which destination are you looking at?'}
+  if(/\b(cars?|taxi|cab|rent|rental|driver)\b/.test(t)){const x=d||last;return x?'Cars with a driver near '+esc(x.name)+': '+carsFor(x).map(c=>`<br>• ${esc(c.name)} ${money(c.price)}/day`).join('')+tripBtn(x):'You can add a car with a driver (hatchback, SUV or luxury sedan) on any trip page. Pricing is per day.'}
+  if(/\b(food|eat|meals?|dinner|restaurants?|order)\b/.test(t)){const x=d||last;return x?'Food you can order to your stay in '+esc(x.name)+': '+foodFor(x).map(f=>`<br>${f.e} ${esc(f.name)} ${money(f.price)}`).join('')+tripBtn(x):'On every trip page you can order local dishes to your stay. Tell me a destination and I will list the menu.'}
+  if(d&&!/(cheap|best|under|below|compare)/.test(t)){last=d;return `<b>${d.e} ${esc(d.name)}, ${esc(d.country)}</b><br>${esc(d.desc)}<br><br>${d.days} days · ★ ${d.rating} · ${d.cat}<br>From ${money(d.price)} per person<br>Includes: ${d.hl.map(esc).join(', ')}.`+tripBtn(d)}
+  if(/(cheap|budget|afford|lowest)/.test(t)&&!bud&&!cat){return list([...state.dest].sort((a,b)=>a.price-b.price),'The most affordable trips right now:')}
+  if(/(best|top|popular|recommend|suggest|trending|where)/.test(t)||bud||cat||days){let l=state.dest.filter(x=>(!bud||x.price<=bud)&&(!cat||x.cat===CATS[cat])&&(!days||x.days<=days));
+   l.sort((a,b)=>/cheap|afford|lowest/.test(t)?a.price-b.price:b.rating-a.rating);
+   const w=[cat?CATS[cat].toLowerCase():'',bud?'under '+money(bud)+' per person':'',days?'up to '+days+' days':''].filter(Boolean).join(', ');
+   return list(l,w?'Top picks ('+w+'):':'Top rated trips right now:')}
+  return 'I can help with trip ideas, prices, hotels, cars, food, maps, payments and cancellations. Try "beach trip under 60000" or "tell me about Kyoto".'}
+ async function send(text){text=text.trim().slice(0,300);if(!text)return;add(esc(text),'me');const ty=add('Typing…','bot typing');
+  await new Promise(r=>setTimeout(r,450));let r;try{r=await reply(text)}catch(e){r='Sorry, something went wrong. Please try again.'}ty.remove();add(r,'bot')}
+ function open(o){chat.classList.toggle('on',o);fab.setAttribute('aria-expanded',o);fab.textContent=o?'✕':'💬';
+  if(o){if(!started){started=true;add('Hi, I am Wanda 👋 I can find a trip that fits your budget, compare hotels, explain add-ons and help with payments. What would you like to know?','bot');
+   $('#qr').innerHTML=['Beach trip under 60000','Romantic getaway','Cheapest trips','How do I book?','Refunds & payments','Show me the map'].map(q=>`<button type="button">${q}</button>`).join('')}setTimeout(()=>inp.focus(),50)}}
+ fab.onclick=()=>open(!chat.classList.contains('on'));$('#chatX').onclick=()=>open(false);
+ $('#cf').onsubmit=e=>{e.preventDefault();const v=inp.value;inp.value='';send(v)};
+ $('#qr').onclick=e=>{if(e.target.tagName==='BUTTON')send(e.target.textContent)};
+ msgs.onclick=e=>{const b=e.target.closest('[data-o]');if(b){open(false);openTrip(+b.dataset.o)}};
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&chat.classList.contains('on'))open(false)});
+ return{open}})();
+init();

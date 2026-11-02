@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wanderly – Book your next escape</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=DM+Sans:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div class="bar">
+<a class="logo" href="#">✈ Wanderly</a>
+<button class="btn ghost" id="theme" aria-label="Toggle theme">◐</button>
+<button class="btn ghost" id="dash">Payments</button>
+<button class="btn ghost" id="trips">My trips</button>
+<button class="btn" id="authBtn">Sign in</button>
+</div></header>
+
+<section class="hero"><div>
+<h1>The world is booked for you.</h1>
+<p>Handpicked trips with flights, stays and local guides included. Pick a place, choose a date, and go.</p>
+</div></section>
+
+<div class="search"><form id="sf">
+<label>Where to?<input id="q" placeholder="Bali, Kyoto, Alps…" autocomplete="off"></label>
+<label>Starting from<input id="sd" type="date"></label>
+<label>Budget per person<select id="bud"><option value="0">Any budget</option><option value="60000">Under ₹60,000</option><option value="100000">Under ₹1,00,000</option><option value="150000">Under ₹1,50,000</option><option value="250000">Under ₹2,50,000</option></select></label>
+<button class="btn sun" type="submit">Search trips</button>
+</form></div>
+
+<main id="explore">
+<div class="head"><h2>Trending escapes</h2>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<div class="chips" id="chips"></div>
+<select id="sort" style="width:auto" aria-label="Sort"><option value="rating">Top rated</option><option value="lo">Price: low to high</option><option value="hi">Price: high to low</option></select>
+</div></div>
+<div class="grid" id="grid" aria-live="polite"></div>
+</main>
+<footer>© 2026 Wanderly. Demo app: accounts and bookings are stored in this browser by a simulated API layer.</footer>
+
+<dialog id="dlg"></dialog>
+<dialog id="auth"></dialog>
+<dialog id="tripsDlg"></dialog>
+<div id="toast" role="status"></div>
+
+<button id="fab" aria-label="Open travel assistant" aria-expanded="false">💬</button>
+<section id="chat" role="dialog" aria-label="Wanderly travel assistant">
+<div class="ch"><span style="font-size:1.6rem">🧭</span><div><b>Wanda, travel assistant</b><small>Ask about trips, prices, hotels or bookings</small></div><button type="button" id="chatX" aria-label="Close assistant">✕</button></div>
+<div id="msgs" aria-live="polite"></div>
+<div class="qr" id="qr"></div>
+<form id="cf" autocomplete="off"><input id="ci" placeholder="Ask me anything about your trip…" aria-label="Message"><button class="btn" type="submit">Send</button></form>
+</section>
+
+<script src="script.js"></script>
+</body>
+</html>
